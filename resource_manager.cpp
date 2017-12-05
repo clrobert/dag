@@ -14,11 +14,10 @@ void CheckCycles();
 void DisplayGraph();
 void HandleInput();
 
-std::string BoolToReadable(bool val){
-    if(val == 1){
+std::string BoolToReadable(bool val) {
+    if (val == 1) {
         return "yes";
-    }
-    else{
+    } else {
         return "no";
     }
 }
@@ -30,44 +29,44 @@ class Node {
         std::vector<std::string> dependencies;
         bool deleted = false;
 
-        Node(std::string input_name){
+        Node(std::string input_name) {
             name = input_name;
         }
 
-        void AddDependency(std::string name){
+        void AddDependency(std::string name) {
             dependencies.push_back(name);
         }
 
-        void AddLink(Node* link){
+        void AddLink(Node* link) {
             Node* existingLink = FindResource(link->name, links);
-            if(existingLink == NULL){
+            if (existingLink == NULL) {
                 links.push_back(link);
             }
         }
 
-        void Link(Node* link){
+        void Link(Node* link) {
             AddLink(link);
-            for(std::string dependency : dependencies){
-                if(link->name == dependency){
+            for (std::string dependency : dependencies) {
+                if (link->name == dependency) {
                     return;
                 }
             }
             AddDependency(link->name);
         }
 
-        bool Usable(){
+        bool Usable() {
             return links.size() == dependencies.size();
         }
 
-        void Print(){
+        void Print() {
             std::cout << "resource: " << name << std::endl;
             std::cout << "dependencies: " << dependencies.size() << "; ";
-            for(std::string dependency : dependencies){
+            for (std::string dependency : dependencies) {
                 std::cout << dependency << " ";
             }
 
             std::cout << std::endl << "dependencies linked: " << links.size() << "; ";
-            for(Node* node : links){
+            for (Node* node : links) {
                 std::cout << node->name << " ";
             }
 
@@ -76,11 +75,11 @@ class Node {
         }
 };
 
-Node* FindResource(std::string name, std::vector<Node *> resources){
+Node* FindResource(std::string name, std::vector<Node *> resources) {
     Node* existing_resource = NULL;
 
-    for(Node* resource : resources){
-        if(resource->name == name){
+    for (Node* resource : resources) {
+        if (resource->name == name) {
             existing_resource = resource;
         }
     }
@@ -88,14 +87,14 @@ Node* FindResource(std::string name, std::vector<Node *> resources){
     return existing_resource;
 }
 
-bool Deleted(Node* node){
+bool Deleted(Node* node) {
     return node->deleted;
 }
 
-std::vector<Node *> DeleteNode(std::string name, std::vector<Node *> resources){
-    for(Node* resource : resources){
+std::vector<Node *> DeleteNode(std::string name, std::vector<Node *> resources) {
+    for (Node* resource : resources) {
         Node* link = FindResource(name, resource->links);
-        if(link != nullptr){
+        if (link != nullptr) {
             link->deleted = true;
             resource->links.erase(
                 std::remove_if(resource->links.begin(),
@@ -104,8 +103,8 @@ std::vector<Node *> DeleteNode(std::string name, std::vector<Node *> resources){
                 resource->links.end());
         }
     }
-    for(Node* resource : resources){
-        if(resource->name == name){
+    for (Node* resource : resources) {
+        if (resource->name == name) {
             resource->deleted = true;
             resources.erase(
                 std::remove_if(resources.begin(),
@@ -118,15 +117,17 @@ std::vector<Node *> DeleteNode(std::string name, std::vector<Node *> resources){
     return resources;
 }
 
-int main(){
+int main() {
     std::ifstream input_data (INPUT_FILENAME);
     std::vector<Node *> resources;
 
-    if(input_data.is_open()){
-        for(std::string line; getline( input_data, line ); )
-        {
+    if (input_data.is_open()) {
+        for (std::string line; getline(input_data, line); ) {
             std::istringstream iss(line);
-            std::vector<std::string> tokens{std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
+            std::vector<std::string> tokens{
+                std::istream_iterator<std::string>{iss},
+                std::istream_iterator<std::string>{}
+            };
 
             std::string source_node_name = tokens[0];
             std::string destination_node_name = tokens[1];
@@ -134,12 +135,12 @@ int main(){
             Node* source_resource = FindResource(source_node_name, resources);
             Node* destination_resource = FindResource(destination_node_name, resources);
 
-            if (source_resource == NULL){
+            if (source_resource == NULL) {
                 source_resource = new Node(source_node_name);
                 resources.push_back(source_resource);
             }
 
-            if (destination_resource == NULL){
+            if (destination_resource == NULL) {
                 destination_resource = new Node(destination_node_name);
                 resources.push_back(destination_resource);
             }
@@ -151,7 +152,7 @@ int main(){
 
     // resources = DeleteNode("ore", resources);
 
-    for(Node* node : resources){
+    for (Node* node : resources) {
         node->Print();
     }
     return 0;
