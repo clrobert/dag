@@ -3,6 +3,7 @@
 #include <fstream>
 #include <vector>
 #include <sstream>
+#include <algorithm>
 
 static std::string INPUT_FILENAME = "resource.txt";
 class Node;
@@ -11,27 +12,45 @@ Node* FindResource(std::string name, std::vector<Node *> resources);
 class Node {
     public:
         std::string name;
-        std::vector<Node *> dependencies;
+        std::vector<Node *> links;
+        std::vector<std::string> dependencies;
+        bool deleted = false;
 
         Node(std::string input_name){
             name = input_name;
         }
 
-        void AddDependency(Node* dependency){
-            Node* existingDependency = FindResource(dependency->name, dependencies);
-            if(existingDependency == NULL){
-                dependencies.push_back(dependency);
+        virtual ~Node(){};
+
+        void AddDependency(std::string name){
+            dependencies.push_back(name);
+        }
+
+        void AddLink(Node* link){
+            Node* existingLink = FindResource(link->name, links);
+            if(existingLink == NULL){
+                links.push_back(link);
             }
         }
 
-        bool Usable(){
-            return true;
+        void Link(Node* link){
+            AddLink(link);
+            AddDependency(link->name);
         }
+
+        bool Usable(){
+            return links.size() == dependencies.size();
+        }
+
 
         void Print(){
             std::cout << "resource: " << name << std::endl;
             std::cout << "dependencies: ";
-            for(Node* node : dependencies){
+            for(std::string dependency : dependencies){
+                std::cout << dependency << " ";
+            }
+            std::cout << std::endl << "dependencies linked: ";
+            for(Node* node : links){
                 std::cout << node->name << " ";
             }
             std::cout << std::endl << "usable?: " << Usable();
@@ -55,11 +74,42 @@ void DisplayGraph();
 
 void HandleInput();
 
-void DeleteNode();
+bool Deleted(Node* node){
+    return node->deleted;
+}
+
+std::vector<Node *> DeleteNode(std::string name, std::vector<Node *> resources){
+    int loc = 0;
+    for(Node* resource : resources){
+        loc++;
+        if(resource->name == name){
+            resource->deleted = true;
+            resources.erase(
+                std::remove_if(resources.begin(),
+                               resources.end(),
+                               Deleted),
+                resources.end());
+            delete resource;
+        }
+        else {
+            Node* link = FindResource(name, resource->links);
+            if(link != nullptr){
+                link->deleted = true;
+                resource->links.erase(
+                    std::remove_if(resource->links.begin(),
+                                   resource->links.end(),
+                                   Deleted),
+                    resource->links.end());
+            }
+        }
+    }
+    return resources;
+}
+
 
 void InsertNode();
 
-void InsertDependency();
+void InsertLink();
 
 void CheckCycles();
 
@@ -89,14 +139,16 @@ int main(){
                 resources.push_back(destination_resource);
             }
 
-            source_resource->AddDependency(destination_resource);
+            source_resource->Link(destination_resource);
         }
         input_data.close();
     }
 
+    resources = DeleteNode("ore", resources);
+
+
     for(Node* node : resources){
         node->Print();
     }
-
     return 0;
 }
