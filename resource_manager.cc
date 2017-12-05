@@ -5,14 +5,9 @@
 #include <sstream>
 #include <algorithm>
 
+#include "resource_manager.h"
+
 static std::string INPUT_FILENAME = "resource.txt";
-class Node;
-Node* FindResource(std::string name, std::vector<Node *> resources);
-void InsertResource(std::string name, std::string dependency);
-void RemoveResource(std::string name);
-void CheckCycles();
-void DisplayGraph();
-void HandleInput();
 
 std::string BoolToReadable(bool val) {
     if (val == 1) {
@@ -150,10 +145,27 @@ int main() {
         input_data.close();
     }
 
-    // resources = DeleteNode("ore", resources);
+    std::string sentinel = "";
 
+    // resources = DeleteNode("ore", resources);
+    /*
     for (Node* node : resources) {
         node->Print();
     }
+    */
+
+    while (sentinel != "q") {
+        std::cout << "\n----Options----\n" << std::endl;
+        std::cout << "del <resource_name> // deletes a resource." << std::endl;
+        std::cout << "add <resource_name> <dependency_name> // add a resource and associated dependency. complains if the resource already exists. adds the dependency as a resource if it does not exist." << std::endl;
+        std::cout << "link <resource_name> <dependency_name> // create a resource dependency. " << std::endl;
+        std::cout << "info <resource_name> // describes a resource and associated dependencies." << std::endl;
+        std::cout << "show // displays the graph; lists all nodes and their dependencies. " << std::endl;
+        std::cout << "q  // quit gracefully.\n" << std::endl;
+
+        std::cin >> sentinel;
+        std::cout << std::endl;
+    }
+
     return 0;
 }

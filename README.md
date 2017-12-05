@@ -4,8 +4,7 @@
 
 Planned:
 - Handle user input to add and remove resources.
-- Allow user to quit menu.
 - Detect cycles.
 - Display graph in a different manner for the UI loop, maybe with arrows.
-- Styling updates.
+- More styling updates.
 - Use smart pointers where appropriate.
