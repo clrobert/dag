@@ -2,6 +2,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <list>
 #include <sstream>
 #include <algorithm>
 #include <unistd.h>
@@ -169,9 +170,37 @@ public:
     }
 
     bool Cycles(){
+        bool* visited = new bool[resources.size()];
+        bool* recursion_stack = new bool[resources.size()];
+
+        for(int i = 0; i < resources.size(); i++){
+            visited[i] = false;
+            recursion_stack[i] = false;
+        }
+        for(int i = 0; i < resources.size(); i++){
+            if (CycleDetected(i, visited, recursion_stack)){
+                return true;
+            }
+        }
         return false;
     }
 
+    bool CycleDetected(int i, bool visited[], bool* recursion_stack){
+        if (visited[i] == false) {
+            visited[i] = true;
+            recursion_stack[i] = true;
+        }
+
+        for (int i = 0; i < resources.size(); i++) {
+            if (!visited[i] && CycleDetected(i, visited, recursion_stack)) {
+                return true;
+            } else if (recursion_stack[i]) {
+                return false;
+            }
+        }
+        recursion_stack[i] = false;
+        return false;
+    }
     void Show(){
 
     }
@@ -221,6 +250,7 @@ int main() {
     ResourceManager resource_manager = ResourceManager("resource.txt");
     std::string sentinel = "";
 
+    /*
     PrintMenu();
 
     while (sentinel != "q") {
@@ -228,6 +258,8 @@ int main() {
         ExecuteCommand(sentinel, resource_manager);
         std::cout << std::endl;
     }
+    */
+    std::cout << resource_manager.Cycles();
 
     return 0;
 }
