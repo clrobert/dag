@@ -18,3 +18,5 @@ void CheckCycles();
 void DisplayGraph();
 
 void HandleInput();
+
+std::vector<std::string> SplitString(std::string line);

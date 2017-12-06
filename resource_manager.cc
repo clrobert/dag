@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 #include <algorithm>
+#include <unistd.h>
 
 #include "resource_manager.h"
 
@@ -112,18 +113,38 @@ std::vector<Node *> DeleteNode(std::string name, std::vector<Node *> resources) 
     return resources;
 }
 
+void runMenu(std::string input, std::vector<Node *> resources){
+    std::vector<std::string> args = SplitString(input);
+    std::cout << args[2];
+    if (args[0] == "del") {
+        DeleteNode(args[1], resources);
+    } else if (args[0] == "add") {
+
+    } else if (args[0] == "link") {
+
+    } else if (args[0] == "info") {
+        Node* node = FindResource(args[1], resources);
+        node->Print();
+    } else if (args[0] == "show") {
+    }
+}
+
+std::vector<std::string> SplitString(std::string line) {
+    std::istringstream iss(line);
+    std::vector<std::string> tokens{
+        std::istream_iterator<std::string>{iss},
+        std::istream_iterator<std::string>{}
+    };
+    return tokens;
+}
+
 int main() {
     std::ifstream input_data (INPUT_FILENAME);
     std::vector<Node *> resources;
 
     if (input_data.is_open()) {
         for (std::string line; getline(input_data, line); ) {
-            std::istringstream iss(line);
-            std::vector<std::string> tokens{
-                std::istream_iterator<std::string>{iss},
-                std::istream_iterator<std::string>{}
-            };
-
+            std::vector<std::string> tokens = SplitString(line);
             std::string source_node_name = tokens[0];
             std::string destination_node_name = tokens[1];
 
@@ -153,19 +174,32 @@ int main() {
         node->Print();
     }
     */
+    unsigned int microseconds = 10000;
 
-    while (sentinel != "q") {
-        std::cout << "\n----Options----\n" << std::endl;
-        std::cout << "del <resource_name> // deletes a resource." << std::endl;
-        std::cout << "add <resource_name> <dependency_name> // add a resource and associated dependency. complains if the resource already exists. adds the dependency as a resource if it does not exist." << std::endl;
-        std::cout << "link <resource_name> <dependency_name> // create a resource dependency. " << std::endl;
-        std::cout << "info <resource_name> // describes a resource and associated dependencies." << std::endl;
-        std::cout << "show // displays the graph; lists all nodes and their dependencies. " << std::endl;
-        std::cout << "q  // quit gracefully.\n" << std::endl;
+    std::string menu[15] = {
+        "\n----Options----\n",
+        "del <resource_name>",
+        "   deletes a resource.\n",
+        "add <resource_name> <dependency_name>",
+        "   add a resource and associated dependency.",
+        "   complains if the resource already exists.",
+        "   adds the dependency as a resource if it does not exist.\n",
+        "link <resource_name> <dependency_name>",
+        "   create a resource dependency.\n",
+        "info <resource_name>",
+        "   describes a resource and associated dependencies.\n",
+        "show",
+        "   displays the graph. lists all nodes and their dependencies.\n",
+        "q",
+        "   quit gracefully.\n",
+    };
 
-        std::cin >> sentinel;
-        std::cout << std::endl;
+    for(std::string item : menu){
+        std::cout << item << std::endl;
     }
+    std::cin >> sentinel;
+    runMenu(sentinel, resources);
+    std::cout << std::endl;
 
     return 0;
 }
