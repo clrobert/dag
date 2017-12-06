@@ -119,7 +119,7 @@ void runMenu(std::string input, std::vector<Node *> resources){
     if (args[0] == "del") {
         DeleteNode(args[1], resources);
     } else if (args[0] == "add") {
-
+        std::cout << "add";
     } else if (args[0] == "link") {
 
     } else if (args[0] == "info") {
@@ -174,22 +174,23 @@ int main() {
         node->Print();
     }
     */
-    unsigned int microseconds = 10000;
 
-    std::string menu[15] = {
-        "\n----Options----\n",
-        "del <resource_name>",
-        "   deletes a resource.\n",
+    std::string menu[17] = {
+        "\n----Menu----\n",
         "add <resource_name> <dependency_name>",
         "   add a resource and associated dependency.",
         "   complains if the resource already exists.",
         "   adds the dependency as a resource if it does not exist.\n",
+        "del <resource_name>",
+        "   deletes a resource.\n",
         "link <resource_name> <dependency_name>",
         "   create a resource dependency.\n",
         "info <resource_name>",
         "   describes a resource and associated dependencies.\n",
         "show",
         "   displays the graph. lists all nodes and their dependencies.\n",
+        "help",
+        "   displays this menu.\n",
         "q",
         "   quit gracefully.\n",
     };
@@ -197,9 +198,11 @@ int main() {
     for(std::string item : menu){
         std::cout << item << std::endl;
     }
-    std::cin >> sentinel;
-    runMenu(sentinel, resources);
-    std::cout << std::endl;
+    while (sentinel != "q") {
+        std::cin >> sentinel;
+        runMenu(sentinel, resources);
+        std::cout << std::endl;
+    }
 
     return 0;
 }
