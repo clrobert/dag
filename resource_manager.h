@@ -1,6 +1,8 @@
 
 class Node;
 
+class ResourceManager;
+
 std::string BoolToReadable(bool val);
 
 Node* FindResource(std::string name, std::vector<Node *> resources);
@@ -19,4 +21,8 @@ void DisplayGraph();
 
 void HandleInput();
 
+void ExecuteCommand(std::string input, std::vector<Node *> resources);
+
 std::vector<std::string> SplitString(std::string line);
+
+void PrintMenu();
