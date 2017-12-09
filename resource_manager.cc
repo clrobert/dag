@@ -111,14 +111,6 @@ Node* Find(std::string name, std::vector<Node*> nodes) {
     return existing_resource;
 }
 
-void PrintNodeList(std::vector<Node*> nodes) {
-    std::string node_list = "";
-    for (Node* node : nodes) {
-        node_list += " -> " + node->name;
-    }
-    std::cout << node_list << std::endl;
-}
-
 class ResourceManager {
 public:
     std::vector<Node *> resources;
@@ -132,8 +124,13 @@ public:
                 AddResource(tokens[0], tokens[1]);
             }
             input_data.close();
+            Show();
+        }
+        else {
+            std::cerr << "Error: can't read file." << std::endl;
         }
     }
+
     Node* Find(std::string name) {
         Node* existing_resource = NULL;
 
@@ -146,6 +143,11 @@ public:
         return existing_resource;
     }
 
+    /*
+        Note: Nodes are stored in the order they're added.
+        @ensure The root node is always added first.
+            This may change later if I add rebalancing.
+    */
     void AddResource(std::string source_node_name, std::string destination_node_name) {
         Node* source_resource = Find(source_node_name);
         Node* destination_resource = Find(destination_node_name);
@@ -164,7 +166,7 @@ public:
 
         if (CycleDetected()) {
             resources.pop_back();
-            std::cout << "Error: Cycle detected." << std::endl;
+            std::cerr << "Error: cycle detected." << std::endl;
         }
 
     }
@@ -225,7 +227,76 @@ public:
         }
         return false;
     }
+
+    void Show() {
+        std::cout << "Breadth first: " << std::endl;
+        BreadthFirstTraversal();
+        std::cout << std::endl;
+
+        std::cout << "Preorder: " << std::endl;
+        PreOrderTraversal(resources.front());
+        std::cout << std::endl;
+
+        std::cout << "Postorder: " << std::endl;
+        PostOrderTraversal(resources.front());
+        std::cout << std::endl;
+    }
+
+    void PostOrderTraversal(Node* node){
+        if (!node->links.empty()) {
+            std::vector<Node*>::iterator iter;
+            for (iter = node->links.begin(); iter < node->links.end(); iter++) {
+                PostOrderTraversal(*iter);
+            }
+            std::cout << node->name << std::endl;
+        } else {
+            std::cout << node->name << std::endl;
+        }
+    }
+
+    void PreOrderTraversal(Node* node){
+        if (!node->links.empty()) {
+            std::vector<Node*>::iterator iter;
+            std::cout << node->name << std::endl;
+            for (iter = node->links.begin(); iter < node->links.end(); iter++) {
+                PreOrderTraversal(*iter);
+            }
+        } else {
+            std::cout << node->name << std::endl;
+        }
+    }
+
+    void BreadthFirstTraversal() {
+        std::cout << resources.front()->name << std::endl;
+        BFT(resources.front());
+    }
+
+    void BFT(Node* root) {
+        if (root->links.empty()) {
+            return;
+        }
+        for (Node* node : root->links) {
+            std::cout << node->name << " ";
+        }
+        std::cout << std::endl;
+        for (Node* node : root->links) {
+            BFT(node);
+        }
+    }
 };
+
+void PrintNodeList(std::vector<Node*> nodes) {
+    if (nodes.empty()) {
+        return;
+    }
+    std::string node_list = "";
+    Node* last = nodes.back();
+    nodes.pop_back();
+    for (Node* node : nodes) {
+        node_list += node->name + ", ";
+    }
+    std::cout << node_list + last->name << std::endl;
+}
 
 void ExecuteCommand(std::string input, ResourceManager resource_manager){
     std::vector<std::string> args = SplitString(input);
@@ -234,10 +305,7 @@ void ExecuteCommand(std::string input, ResourceManager resource_manager){
     } else if (args[0] == "add") {
         resource_manager.AddResource(args[1], args[2]);
     } else if (args[0] == "show") {
-        for (Node* node : resource_manager.resources) {
-            std::cout << node->name;
-            PrintNodeList(node->links);
-        }
+        resource_manager.Show();
     } else if (args[0] == "list") {
         resource_manager.PrintResources();
     } else if (args[0] == "help") {
@@ -270,17 +338,23 @@ void PrintMenu(){
     }
 }
 
-int main() {
-    ResourceManager resource_manager = ResourceManager("resource.txt");
+void RunMenu(ResourceManager resource_manager) {
     std::string sentinel = "";
-
-    PrintMenu();
-
     while (sentinel != "q") {
         std::cin >> sentinel;
         ExecuteCommand(sentinel, resource_manager);
         std::cout << std::endl;
     }
+}
+
+int main() {
+    ResourceManager no_cycle = ResourceManager("resources/no_cycle.txt");
+    //ResourceManager has_cycle_1 = ResourceManager("resources/has_cycle_1.txt");
+    //ResourceManager has_cycle_2 = ResourceManager("resources/has_cycle_2.txt");
+    //ResourceManager has_cycle_3 = ResourceManager("resources/has_cycle_3.txt");
+
+    //PrintMenu();
+    //RunMenu(resource_manager);
 
     return 0;
 }
