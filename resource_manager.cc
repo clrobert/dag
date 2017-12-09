@@ -10,7 +10,7 @@
 #include "resource_manager.h"
 
 std::string BoolToReadable(bool val) {
-    if (val == 1) {
+    if (val == 1 or val == true) {
         return "yes";
     } else {
         return "no";
@@ -26,13 +26,13 @@ std::vector<std::string> SplitString(std::string line) {
     return tokens;
 }
 
-
 class Node {
 public:
     std::string name;
     std::vector<Node *> links;
     std::vector<std::string> dependencies;
     bool deleted = false;
+    bool visited = false;
 
     Node(std::string input_name) {
         name = input_name;
@@ -41,14 +41,23 @@ public:
     void Link(Node* link) {
         Node* existing_link = Find(link->name);
         if (existing_link == NULL) {
+
             AddLink(link);
-        }
-        for (std::string dependency : dependencies) {
-            if (link->name == dependency) {
-                return;
+
+            // If the dependency is already listed, ignore.
+            for (std::string dependency : dependencies) {
+                if (link->name == dependency) {
+                    return;
+                }
             }
+
+            // Otherwise, add the dependency to the list.
+            AddDependency(link->name);
+
+        } else {
+            std::cout << "Link: " << name << " to " << link->name << " already exists. " << std::endl;
         }
-        AddDependency(link->name);
+
     }
 
     bool Usable() {
@@ -92,6 +101,24 @@ private:
     }
 };
 
+Node* Find(std::string name, std::vector<Node*> nodes) {
+    Node* existing_resource = NULL;
+        for (Node* resource : nodes) {
+            if (resource->name == name) {
+                existing_resource = resource;
+            }
+        }
+    return existing_resource;
+}
+
+void PrintNodeList(std::vector<Node*> nodes) {
+    std::string node_list = "";
+    for (Node* node : nodes) {
+        node_list += " -> " + node->name;
+    }
+    std::cout << node_list << std::endl;
+}
+
 class ResourceManager {
 public:
     std::vector<Node *> resources;
@@ -120,9 +147,6 @@ public:
     }
 
     void AddResource(std::string source_node_name, std::string destination_node_name) {
-        if (Cycles()) {
-            return;
-        }
         Node* source_resource = Find(source_node_name);
         Node* destination_resource = Find(destination_node_name);
 
@@ -130,11 +154,19 @@ public:
             source_resource = new Node(source_node_name);
             resources.push_back(source_resource);
         }
+
         if (destination_resource == NULL) {
             destination_resource = new Node(destination_node_name);
             resources.push_back(destination_resource);
         }
+
         source_resource->Link(destination_resource);
+
+        if (CycleDetected()) {
+            resources.pop_back();
+            std::cout << "Error: Cycle detected." << std::endl;
+        }
+
     }
 
     std::vector<Node *> DeleteResource(std::string name) {
@@ -169,40 +201,29 @@ public:
         }
     }
 
-    bool Cycles(){
-        bool* visited = new bool[resources.size()];
-        bool* recursion_stack = new bool[resources.size()];
-
-        for(int i = 0; i < resources.size(); i++){
-            visited[i] = false;
-            recursion_stack[i] = false;
-        }
-        for(int i = 0; i < resources.size(); i++){
-            if (CycleDetected(i, visited, recursion_stack)){
+    bool CycleDetected(){
+        for (Node* node : resources) {
+            std::vector<Node*> recursion_stack;
+            if (CheckCycles(node, recursion_stack, false)) {
                 return true;
             }
         }
         return false;
     }
 
-    bool CycleDetected(int i, bool visited[], bool* recursion_stack){
-        if (visited[i] == false) {
-            visited[i] = true;
-            recursion_stack[i] = true;
+    bool CheckCycles(Node* node, std::vector<Node*> recursion_stack, bool cycleFound){
+        if (::Find(node->name, recursion_stack)) {
+            std::cout << "Cycle detected. " << node->name << " already exists." << std::endl;
+            PrintNodeList(recursion_stack);
+            std::cout << node->name << std::endl;
+            return true;
+        } else {
+            recursion_stack.push_back(node);
         }
-
-        for (int i = 0; i < resources.size(); i++) {
-            if (!visited[i] && CycleDetected(i, visited, recursion_stack)) {
-                return true;
-            } else if (recursion_stack[i]) {
-                return false;
-            }
+        for (Node* node : node->links) {
+            return CheckCycles(node, recursion_stack, cycleFound);
         }
-        recursion_stack[i] = false;
         return false;
-    }
-    void Show(){
-
     }
 };
 
@@ -213,7 +234,10 @@ void ExecuteCommand(std::string input, ResourceManager resource_manager){
     } else if (args[0] == "add") {
         resource_manager.AddResource(args[1], args[2]);
     } else if (args[0] == "show") {
-        resource_manager.Show();
+        for (Node* node : resource_manager.resources) {
+            std::cout << node->name;
+            PrintNodeList(node->links);
+        }
     } else if (args[0] == "list") {
         resource_manager.PrintResources();
     } else if (args[0] == "help") {
@@ -250,7 +274,6 @@ int main() {
     ResourceManager resource_manager = ResourceManager("resource.txt");
     std::string sentinel = "";
 
-    /*
     PrintMenu();
 
     while (sentinel != "q") {
@@ -258,8 +281,6 @@ int main() {
         ExecuteCommand(sentinel, resource_manager);
         std::cout << std::endl;
     }
-    */
-    std::cout << resource_manager.Cycles();
 
     return 0;
 }

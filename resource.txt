@@ -2,6 +2,5 @@ handgun bullets
 bullets ore
 bombs ore
 turret bullets
-turret bullets
 bullets turret
-ore handgun
+bullets handgun
