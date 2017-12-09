@@ -9,3 +9,4 @@ Issues:
 
 Next:
 - Use smart pointers where appropriate.
+- Pass references instead of huge lists.
