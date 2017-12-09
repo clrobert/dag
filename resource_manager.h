@@ -15,3 +15,5 @@ bool DepthFirstSearch(Node* node, std::vector<Node*> cycle_stack);
 Node* Find(std::string name, std::vector<Node*> nodes);
 
 void PrintNodeList(std::vector<Node*> nodes);
+
+void PrintError(std::string error);

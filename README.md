@@ -2,8 +2,10 @@
 
 [Exercises](https://www.smu.edu/Guildhall/Admissions/Portfolio-Requirements/Programming)
 
+Issues:
+- Adding a node through the CLI does not show up upon further iteration.
+- Adding a node after deleting a node, and then listing nodes results in memory error.
+- Usability does not do a deep traversal. Requirement: If a resource's dependency is unusable, that resource is now unusable.
+
 Next:
-- Detect cycles.
-- Display graph in a different manner for the UI loop, maybe with arrows.
-- More styling updates.
 - Use smart pointers where appropriate.

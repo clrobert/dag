@@ -2,10 +2,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
-#include <list>
 #include <sstream>
-#include <algorithm>
-#include <unistd.h>
 
 #include "resource_manager.h"
 
@@ -102,13 +99,13 @@ private:
 };
 
 Node* Find(std::string name, std::vector<Node*> nodes) {
-    Node* existing_resource = NULL;
-        for (Node* resource : nodes) {
-            if (resource->name == name) {
-                existing_resource = resource;
+    Node* existing_node = NULL;
+        for (Node* node : nodes) {
+            if (node->name == name) {
+                existing_node = node;
             }
         }
-    return existing_resource;
+    return existing_node;
 }
 
 class ResourceManager {
@@ -121,14 +118,14 @@ public:
         if (input_data.is_open()) {
             for (std::string line; getline(input_data, line); ) {
                 std::vector<std::string> tokens = SplitString(line);
-                AddResource(tokens[0], tokens[1]);
+                if (!AddResource(tokens[0], tokens[1])) {
+                    PrintError("file load error: cycle detected.");
+                    return;
+                }
             }
             input_data.close();
-            Show();
         }
-        else {
-            std::cerr << "Error: can't read file." << std::endl;
-        }
+        std::cout << "file loaded successfully." << std::endl;
     }
 
     Node* Find(std::string name) {
@@ -148,9 +145,11 @@ public:
         @ensure The root node is always added first.
             This may change later if I add rebalancing.
     */
-    void AddResource(std::string source_node_name, std::string destination_node_name) {
+    bool AddResource(std::string source_node_name, std::string destination_node_name) {
         Node* source_resource = Find(source_node_name);
         Node* destination_resource = Find(destination_node_name);
+
+        std::cout << "--pre-size: " << resources.size() << std::endl;
 
         if (source_resource == NULL) {
             source_resource = new Node(source_node_name);
@@ -166,9 +165,14 @@ public:
 
         if (CycleDetected()) {
             resources.pop_back();
-            std::cerr << "Error: cycle detected." << std::endl;
+            return false;
         }
 
+        std::cout << source_node_name << "//" << destination_node_name << std::endl;
+        std::cout << source_resource << "//" << destination_resource << std::endl;
+        std::cout << "size: " << resources.size() << std::endl;
+
+        return true;
     }
 
     std::vector<Node *> DeleteResource(std::string name) {
@@ -206,26 +210,34 @@ public:
     bool CycleDetected(){
         for (Node* node : resources) {
             std::vector<Node*> recursion_stack;
-            if (CheckCycles(node, recursion_stack, false)) {
+            if (CheckCycles(node, recursion_stack, 0) > 0) {
                 return true;
             }
+            recursion_stack.clear();
         }
         return false;
     }
 
-    bool CheckCycles(Node* node, std::vector<Node*> recursion_stack, bool cycleFound){
+    int CheckCycles(Node* node, std::vector<Node*> recursion_stack, int cycles){
         if (::Find(node->name, recursion_stack)) {
-            std::cout << "Cycle detected. " << node->name << " already exists." << std::endl;
+            recursion_stack.push_back(node);
+            PrintError("resource creation error: cycle detected.");
+            PrintError(node->name + " already exists.");
             PrintNodeList(recursion_stack);
-            std::cout << node->name << std::endl;
-            return true;
+            std::cerr << std::endl;
+            cycles++;
         } else {
             recursion_stack.push_back(node);
+            if (!node->links.empty()) {
+                std::vector<Node*>::iterator iter;
+                for (iter = node->links.begin(); iter < node->links.end(); iter++) {
+                    cycles += CheckCycles(*iter, recursion_stack, cycles);
+                }
+            } else {
+                recursion_stack.pop_back();
+            }
         }
-        for (Node* node : node->links) {
-            return CheckCycles(node, recursion_stack, cycleFound);
-        }
-        return false;
+        return cycles;
     }
 
     void Show() {
@@ -293,7 +305,7 @@ void PrintNodeList(std::vector<Node*> nodes) {
     Node* last = nodes.back();
     nodes.pop_back();
     for (Node* node : nodes) {
-        node_list += node->name + ", ";
+        node_list += node->name + " -> ";
     }
     std::cout << node_list + last->name << std::endl;
 }
@@ -326,7 +338,7 @@ void PrintMenu(){
         "list",
         "   lists all nodes and their dependencies.\n",
         "show",
-        "   displays the graph.\n",
+        "   traverses the graph.\n",
         "help",
         "   displays this menu.\n",
         "q",
@@ -341,20 +353,28 @@ void PrintMenu(){
 void RunMenu(ResourceManager resource_manager) {
     std::string sentinel = "";
     while (sentinel != "q") {
-        std::cin >> sentinel;
+        std::getline(std::cin, sentinel);
+        std::cout << std::endl;
         ExecuteCommand(sentinel, resource_manager);
         std::cout << std::endl;
     }
 }
 
-int main() {
-    ResourceManager no_cycle = ResourceManager("resources/no_cycle.txt");
-    //ResourceManager has_cycle_1 = ResourceManager("resources/has_cycle_1.txt");
-    //ResourceManager has_cycle_2 = ResourceManager("resources/has_cycle_2.txt");
-    //ResourceManager has_cycle_3 = ResourceManager("resources/has_cycle_3.txt");
+void PrintError(std::string error) {
+    std::cerr << "\033[1;31m" << error << "\033[0m" << std::endl;
+}
 
-    //PrintMenu();
-    //RunMenu(resource_manager);
+int main() {
+    ResourceManager resource_manager = ResourceManager("resources/no_cycle_2.txt");
+
+    PrintMenu();
+    RunMenu(resource_manager);
 
     return 0;
+}
+
+void test() {
+    ResourceManager has_cycle_1 = ResourceManager("resources/has_cycle_1.txt");
+    ResourceManager has_cycle_2 = ResourceManager("resources/has_cycle_2.txt");
+    ResourceManager has_cycle_3 = ResourceManager("resources/has_cycle_3.txt");
 }
