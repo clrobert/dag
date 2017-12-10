@@ -14,7 +14,7 @@
 - [x] Postorder depth first traversal
 - [x] Allow inserting of new nodes and links
 - [ ] Use smart pointers where appropriate
-- [ ] Pass containers by reference
+- [ ] Pass lists by pointers
 - [ ] Save graph on exit
 - [ ] Review memory usage
 
