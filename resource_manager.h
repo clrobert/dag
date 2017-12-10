@@ -6,14 +6,14 @@ class Node;
 
 class ResourceManager;
 
-void ExecuteCommand(std::string input, std::vector<Node *> resources);
+void ExecuteCommand(std::string input, std::forward_list<Node *> resources);
 
 void PrintMenu();
 
-bool DepthFirstSearch(Node* node, std::vector<Node*> cycle_stack);
+bool DepthFirstSearch(Node* node, std::forward_list<Node*> cycle_stack);
 
-Node* Find(std::string name, std::vector<Node*> nodes);
+Node* FindNode(std::string name, std::forward_list<Node*> nodes);
 
-void PrintNodeList(std::vector<Node*> nodes);
+void PrintNodeList(std::forward_list<Node*> nodes);
 
 void PrintError(std::string error);

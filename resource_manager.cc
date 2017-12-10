@@ -1,8 +1,10 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include <vector>
+#include <forward_list>
 #include <sstream>
+#include <vector>
+#include <forward_list>
 
 #include "resource_manager.h"
 
@@ -26,8 +28,8 @@ std::vector<std::string> SplitString(std::string line) {
 class Node {
 public:
     std::string name;
-    std::vector<Node *> links;
-    std::vector<std::string> dependencies;
+    std::forward_list<Node *> links;
+    std::forward_list<std::string> dependencies;
     bool deleted = false;
     bool visited = false;
 
@@ -36,7 +38,7 @@ public:
     }
 
     void Link(Node* link) {
-        Node* existing_link = Find(link->name);
+        Node* existing_link = FindLink(link->name);
         if (existing_link == NULL) {
 
             AddLink(link);
@@ -58,17 +60,17 @@ public:
     }
 
     bool Usable() {
-        return links.size() == dependencies.size();
+        return false;
     }
 
     void Print() {
         std::cout << "resource: " << name << std::endl;
-        std::cout << "dependencies: " << dependencies.size() << "; ";
+        std::cout << "dependencies: ";
         for (std::string dependency : dependencies) {
             std::cout << dependency << " ";
         }
 
-        std::cout << std::endl << "dependencies linked: " << links.size() << "; ";
+        std::cout << std::endl << "dependencies linked: ";
         for (Node* node : links) {
             std::cout << node->name << " ";
         }
@@ -77,7 +79,7 @@ public:
         std::cout << '\n' << std::endl;
     }
 
-    Node* Find(std::string name) {
+    Node* FindLink(std::string name) {
         Node* existing_resource = NULL;
 
         for (Node* resource : links) {
@@ -90,15 +92,15 @@ public:
     }
 private:
     void AddDependency(std::string name) {
-        dependencies.push_back(name);
+        dependencies.push_front(name);
     }
 
     void AddLink(Node* link) {
-        links.push_back(link);
+        links.push_front(link);
     }
 };
 
-Node* Find(std::string name, std::vector<Node*> nodes) {
+Node* FindNode(std::string name, std::forward_list<Node*> nodes) {
     Node* existing_node = NULL;
         for (Node* node : nodes) {
             if (node->name == name) {
@@ -110,7 +112,7 @@ Node* Find(std::string name, std::vector<Node*> nodes) {
 
 class ResourceManager {
 public:
-    std::vector<Node *> resources;
+    std::forward_list<Node *> resources;
 
     ResourceManager(std::string input_filename){
         std::ifstream input_data (input_filename);
@@ -128,7 +130,7 @@ public:
         std::cout << "file loaded successfully." << std::endl;
     }
 
-    Node* Find(std::string name) {
+    Node* FindResource(std::string name) {
         Node* existing_resource = NULL;
 
         for (Node* resource : resources) {
@@ -146,59 +148,44 @@ public:
             This may change later if I add rebalancing.
     */
     bool AddResource(std::string source_node_name, std::string destination_node_name) {
-        Node* source_resource = Find(source_node_name);
-        Node* destination_resource = Find(destination_node_name);
-
-        std::cout << "--pre-size: " << resources.size() << std::endl;
+        Node* source_resource = FindResource(source_node_name);
+        Node* destination_resource = FindResource(destination_node_name);
 
         if (source_resource == NULL) {
             source_resource = new Node(source_node_name);
-            resources.push_back(source_resource);
+            resources.push_front(source_resource);
         }
 
         if (destination_resource == NULL) {
             destination_resource = new Node(destination_node_name);
-            resources.push_back(destination_resource);
+            resources.push_front(destination_resource);
         }
 
         source_resource->Link(destination_resource);
 
         if (CycleDetected()) {
-            resources.pop_back();
+            resources.pop_front();
             return false;
         }
-
-        std::cout << source_node_name << "//" << destination_node_name << std::endl;
-        std::cout << source_resource << "//" << destination_resource << std::endl;
-        std::cout << "size: " << resources.size() << std::endl;
 
         return true;
     }
 
-    std::vector<Node *> DeleteResource(std::string name) {
+    void DeleteResource(std::string name) {
+         // remove linked dependencies
         for (Node* resource : resources) {
-            Node* link = resource->Find(name);
-            if (link != nullptr) {
-                link->deleted = true;
-                resource->links.erase(
-                    std::remove_if(resource->links.begin(),
-                                resource->links.end(),
-                                [](Node* node) { return node->deleted; }),
-                    resource->links.end());
+            Node* node = resource->FindLink(name);
+            std::cout << node->name; // TODO: segfault
+            if (node != nullptr) {
+                node->deleted = true;
+                node->links.remove_if([](Node* node) { return node->deleted; });
             }
         }
-        for (Node* resource : resources) {
-            if (resource->name == name) {
-                resource->deleted = true;
-                resources.erase(
-                    std::remove_if(resources.begin(),
-                                resources.end(),
-                                [](Node* node) { return node->deleted; }),
-                    resources.end());
-                delete resource;
-            }
-        }
-        return resources;
+
+        // remove resource
+        Node* node = FindResource(name);
+        node->deleted = true;
+        resources.remove_if([](Node* node) { return node->deleted; });
     }
 
     void PrintResources() {
@@ -209,7 +196,7 @@ public:
 
     bool CycleDetected(){
         for (Node* node : resources) {
-            std::vector<Node*> recursion_stack;
+            std::forward_list<Node*> recursion_stack;
             if (CheckCycles(node, recursion_stack, 0) > 0) {
                 return true;
             }
@@ -218,23 +205,23 @@ public:
         return false;
     }
 
-    int CheckCycles(Node* node, std::vector<Node*> recursion_stack, int cycles){
-        if (::Find(node->name, recursion_stack)) {
-            recursion_stack.push_back(node);
+    int CheckCycles(Node* node, std::forward_list<Node*> recursion_stack, int cycles){
+        if (::FindNode(node->name, recursion_stack)) {
+            recursion_stack.push_front(node);
             PrintError("resource creation error: cycle detected.");
             PrintError(node->name + " already exists.");
             PrintNodeList(recursion_stack);
             std::cerr << std::endl;
             cycles++;
         } else {
-            recursion_stack.push_back(node);
+            recursion_stack.push_front(node);
             if (!node->links.empty()) {
-                std::vector<Node*>::iterator iter;
-                for (iter = node->links.begin(); iter < node->links.end(); iter++) {
-                    cycles += CheckCycles(*iter, recursion_stack, cycles);
+                std::forward_list<Node*>::iterator iter;
+                for (Node* node : node->links) {
+                    cycles += CheckCycles(node, recursion_stack, cycles);
                 }
             } else {
-                recursion_stack.pop_back();
+                recursion_stack.pop_front();
             }
         }
         return cycles;
@@ -256,9 +243,9 @@ public:
 
     void PostOrderTraversal(Node* node){
         if (!node->links.empty()) {
-            std::vector<Node*>::iterator iter;
-            for (iter = node->links.begin(); iter < node->links.end(); iter++) {
-                PostOrderTraversal(*iter);
+            std::forward_list<Node*>::iterator iter;
+            for (Node* node : node->links)  {
+                PostOrderTraversal(node);
             }
             std::cout << node->name << std::endl;
         } else {
@@ -268,10 +255,10 @@ public:
 
     void PreOrderTraversal(Node* node){
         if (!node->links.empty()) {
-            std::vector<Node*>::iterator iter;
+            std::forward_list<Node*>::iterator iter;
             std::cout << node->name << std::endl;
-            for (iter = node->links.begin(); iter < node->links.end(); iter++) {
-                PreOrderTraversal(*iter);
+            for (Node* node : node->links)  {
+                PreOrderTraversal(node);
             }
         } else {
             std::cout << node->name << std::endl;
@@ -297,29 +284,26 @@ public:
     }
 };
 
-void PrintNodeList(std::vector<Node*> nodes) {
+void PrintNodeList(std::forward_list<Node*> nodes) {
     if (nodes.empty()) {
         return;
     }
     std::string node_list = "";
-    Node* last = nodes.back();
-    nodes.pop_back();
     for (Node* node : nodes) {
         node_list += node->name + " -> ";
     }
-    std::cout << node_list + last->name << std::endl;
 }
 
-void ExecuteCommand(std::string input, ResourceManager resource_manager){
+void ExecuteCommand(std::string input, ResourceManager* resource_manager){
     std::vector<std::string> args = SplitString(input);
     if (args[0] == "del") {
-        resource_manager.DeleteResource(args[1]);
+        resource_manager->DeleteResource(args[1]);
     } else if (args[0] == "add") {
-        resource_manager.AddResource(args[1], args[2]);
+        resource_manager->AddResource(args[1], args[2]);
     } else if (args[0] == "show") {
-        resource_manager.Show();
+        resource_manager->Show();
     } else if (args[0] == "list") {
-        resource_manager.PrintResources();
+        resource_manager->PrintResources();
     } else if (args[0] == "help") {
         PrintMenu();
     }
@@ -350,7 +334,7 @@ void PrintMenu(){
     }
 }
 
-void RunMenu(ResourceManager resource_manager) {
+void RunMenu(ResourceManager* resource_manager) {
     std::string sentinel = "";
     while (sentinel != "q") {
         std::getline(std::cin, sentinel);
@@ -365,7 +349,7 @@ void PrintError(std::string error) {
 }
 
 int main() {
-    ResourceManager resource_manager = ResourceManager("resources/no_cycle_2.txt");
+    ResourceManager* resource_manager = new ResourceManager("resources/no_cycle_2.txt");
 
     PrintMenu();
     RunMenu(resource_manager);
@@ -374,7 +358,7 @@ int main() {
 }
 
 void test() {
-    ResourceManager has_cycle_1 = ResourceManager("resources/has_cycle_1.txt");
-    ResourceManager has_cycle_2 = ResourceManager("resources/has_cycle_2.txt");
-    ResourceManager has_cycle_3 = ResourceManager("resources/has_cycle_3.txt");
+    ResourceManager* has_cycle_1 = new ResourceManager("resources/has_cycle_1.txt");
+    ResourceManager* has_cycle_2 = new ResourceManager("resources/has_cycle_2.txt");
+    ResourceManager* has_cycle_3 = new ResourceManager("resources/has_cycle_3.txt");
 }
