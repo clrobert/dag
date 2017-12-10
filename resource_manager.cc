@@ -80,15 +80,13 @@ public:
     }
 
     Node* FindLink(std::string name) {
-        Node* existing_resource = NULL;
-
-        for (Node* resource : links) {
-            if (resource->name == name) {
-                existing_resource = resource;
+        Node* existing_link = NULL;
+        for (Node* link : links) {
+            if (link->name == name) {
+                existing_link = link;
             }
         }
-
-        return existing_resource;
+        return existing_link;
     }
 private:
     void AddDependency(std::string name) {
@@ -172,20 +170,20 @@ public:
     }
 
     void DeleteResource(std::string name) {
-         // remove linked dependencies
+        // remove linked dependencies
         for (Node* resource : resources) {
-            Node* node = resource->FindLink(name);
-            std::cout << node->name; // TODO: segfault
-            if (node != nullptr) {
-                node->deleted = true;
-                node->links.remove_if([](Node* node) { return node->deleted; });
+            Node* link = resource->FindLink(name);
+            if (link != nullptr) {
+                link->deleted = true;
             }
+            resource->links.remove_if([](Node* node) { return node->deleted; });
         }
-
         // remove resource
         Node* node = FindResource(name);
-        node->deleted = true;
-        resources.remove_if([](Node* node) { return node->deleted; });
+        if (node != nullptr) {
+            node->deleted = true;
+            resources.remove_if([](Node* node) { return node->deleted; });
+        }
     }
 
     void PrintResources() {
@@ -296,16 +294,18 @@ void PrintNodeList(std::forward_list<Node*> nodes) {
 
 void ExecuteCommand(std::string input, ResourceManager* resource_manager){
     std::vector<std::string> args = SplitString(input);
-    if (args[0] == "del") {
+    if (args.size() == 0){
+        PrintMenu();
+        return;
+    }
+    if (args[0] == "del" || args[0] == "delete") {
         resource_manager->DeleteResource(args[1]);
     } else if (args[0] == "add") {
         resource_manager->AddResource(args[1], args[2]);
     } else if (args[0] == "show") {
         resource_manager->Show();
-    } else if (args[0] == "list") {
+    } else if (args[0] == "list" || args[0] == "l") {
         resource_manager->PrintResources();
-    } else if (args[0] == "help") {
-        PrintMenu();
     }
 }
 
@@ -323,8 +323,6 @@ void PrintMenu(){
         "   lists all nodes and their dependencies.\n",
         "show",
         "   traverses the graph.\n",
-        "help",
-        "   displays this menu.\n",
         "q",
         "   quit gracefully.\n",
     };

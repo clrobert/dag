@@ -5,8 +5,8 @@
 - [x] Display menu and allow quit
 - [x] Display current view of graph
 - [ ] Display usability of nodes (issue: needs to do deep traversal check)
-- [ ] Allow node deletion (issue: deleting linked dependencies results in segfault)
-- [ ] Zero memory leaks
+- [x] Allow node deletion
+- [ ] Check for memory leaks
 
 ### Hidden Requirements
 - [x] Cycle detection
