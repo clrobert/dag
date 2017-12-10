@@ -1,10 +1,9 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include <forward_list>
+#include <list>
 #include <sstream>
 #include <vector>
-#include <forward_list>
 
 #include "resource_manager.h"
 
@@ -28,8 +27,8 @@ std::vector<std::string> SplitString(std::string line) {
 class Node {
 public:
     std::string name;
-    std::forward_list<Node *> links;
-    std::forward_list<std::string> dependencies;
+    std::list<Node *> links;
+    std::list<std::string> dependencies;
     bool deleted = false;
     bool visited = false;
 
@@ -60,7 +59,18 @@ public:
     }
 
     bool Usable() {
-        return false;
+        bool usable = true;
+        for (std::string dependency : dependencies) {
+            if (FindLink(dependency) == nullptr) {
+                usable = false;
+            }
+        }
+        for (Node* link : links) {
+            if (link->Usable() == false) {
+                usable = false;
+            }
+        }
+        return usable;
     }
 
     void Print() {
@@ -90,15 +100,15 @@ public:
     }
 private:
     void AddDependency(std::string name) {
-        dependencies.push_front(name);
+        dependencies.push_back(name);
     }
 
     void AddLink(Node* link) {
-        links.push_front(link);
+        links.push_back(link);
     }
 };
 
-Node* FindNode(std::string name, std::forward_list<Node*> nodes) {
+Node* FindNode(std::string name, std::list<Node*> nodes) {
     Node* existing_node = NULL;
         for (Node* node : nodes) {
             if (node->name == name) {
@@ -110,7 +120,7 @@ Node* FindNode(std::string name, std::forward_list<Node*> nodes) {
 
 class ResourceManager {
 public:
-    std::forward_list<Node *> resources;
+    std::list<Node *> resources;
 
     ResourceManager(std::string input_filename){
         std::ifstream input_data (input_filename);
@@ -151,18 +161,18 @@ public:
 
         if (source_resource == NULL) {
             source_resource = new Node(source_node_name);
-            resources.push_front(source_resource);
+            resources.push_back(source_resource);
         }
 
         if (destination_resource == NULL) {
             destination_resource = new Node(destination_node_name);
-            resources.push_front(destination_resource);
+            resources.push_back(destination_resource);
         }
 
         source_resource->Link(destination_resource);
 
         if (CycleDetected()) {
-            resources.pop_front();
+            resources.pop_back();
             return false;
         }
 
@@ -194,7 +204,7 @@ public:
 
     bool CycleDetected(){
         for (Node* node : resources) {
-            std::forward_list<Node*> recursion_stack;
+            std::list<Node*> recursion_stack;
             if (CheckCycles(node, recursion_stack, 0) > 0) {
                 return true;
             }
@@ -203,29 +213,29 @@ public:
         return false;
     }
 
-    int CheckCycles(Node* node, std::forward_list<Node*> recursion_stack, int cycles){
+    int CheckCycles(Node* node, std::list<Node*> recursion_stack, int cycles){
         if (::FindNode(node->name, recursion_stack)) {
-            recursion_stack.push_front(node);
+            recursion_stack.push_back(node);
             PrintError("resource creation error: cycle detected.");
             PrintError(node->name + " already exists.");
             PrintNodeList(recursion_stack);
             std::cerr << std::endl;
             cycles++;
         } else {
-            recursion_stack.push_front(node);
+            recursion_stack.push_back(node);
             if (!node->links.empty()) {
-                std::forward_list<Node*>::iterator iter;
+                std::list<Node*>::iterator iter;
                 for (Node* node : node->links) {
                     cycles += CheckCycles(node, recursion_stack, cycles);
                 }
             } else {
-                recursion_stack.pop_front();
+                recursion_stack.pop_back();
             }
         }
         return cycles;
     }
 
-    void Show() {
+    void TraverseConnected() {
         std::cout << "Breadth first: " << std::endl;
         BreadthFirstTraversal();
         std::cout << std::endl;
@@ -241,9 +251,8 @@ public:
 
     void PostOrderTraversal(Node* node){
         if (!node->links.empty()) {
-            std::forward_list<Node*>::iterator iter;
-            for (Node* node : node->links)  {
-                PostOrderTraversal(node);
+            for (Node* link : node->links)  {
+                PostOrderTraversal(link);
             }
             std::cout << node->name << std::endl;
         } else {
@@ -253,10 +262,9 @@ public:
 
     void PreOrderTraversal(Node* node){
         if (!node->links.empty()) {
-            std::forward_list<Node*>::iterator iter;
             std::cout << node->name << std::endl;
-            for (Node* node : node->links)  {
-                PreOrderTraversal(node);
+            for (Node* link : node->links)  {
+                PreOrderTraversal(link);
             }
         } else {
             std::cout << node->name << std::endl;
@@ -282,7 +290,7 @@ public:
     }
 };
 
-void PrintNodeList(std::forward_list<Node*> nodes) {
+void PrintNodeList(std::list<Node*> nodes) {
     if (nodes.empty()) {
         return;
     }
@@ -303,7 +311,7 @@ void ExecuteCommand(std::string input, ResourceManager* resource_manager){
     } else if (args[0] == "add") {
         resource_manager->AddResource(args[1], args[2]);
     } else if (args[0] == "show") {
-        resource_manager->Show();
+        resource_manager->TraverseConnected();
     } else if (args[0] == "list" || args[0] == "l") {
         resource_manager->PrintResources();
     }
@@ -320,9 +328,9 @@ void PrintMenu(){
         "del <resource_name>",
         "   deletes a resource.\n",
         "list",
-        "   lists all nodes and their dependencies.\n",
+        "   lists all nodes in the graph (including orphans) and their dependencies.\n",
         "show",
-        "   traverses the graph.\n",
+        "   traverses all nodes connected to the root node (excluding orphans) in the graph.\n",
         "q",
         "   quit gracefully.\n",
     };
